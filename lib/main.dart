@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 import 'config/supabase_config.dart';
+import 'custom_views/custom_views.dart';
+import 'pages/design_system_page.dart';
 import 'pages/home_page.dart';
 import 'pages/login_page.dart';
 
@@ -28,9 +29,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Supabase Example',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-      ),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
       home: SupabaseConfig.isConfigured
           ? const AuthGate()
           : const MissingConfigPage(),
@@ -60,17 +60,15 @@ class MissingConfigPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Supabase is not configured.\n\n'
+    return Scaffold(
+      body: AppEmptyState(
+        icon: Icons.key_outlined,
+        title: 'Supabase is not configured',
+        message:
             'Fill in env.json with your project URL and publishable key, then run:\n'
             'flutter run --dart-define-from-file=env.json',
-            textAlign: TextAlign.center,
-          ),
-        ),
+        actionLabel: 'View components',
+        onAction: () => DesignSystemPage.open(context),
       ),
     );
   }

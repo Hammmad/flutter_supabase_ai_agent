@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../custom_views/custom_views.dart';
 import '../main.dart';
+import 'design_system_page.dart';
 
 /// Example of reading and writing a Supabase table in realtime.
 ///
@@ -16,10 +18,10 @@ class _HomePageState extends State<HomePage> {
   final _controller = TextEditingController();
 
   // Realtime stream of the current user's todos (filtered by RLS).
-  late final Stream<List<Map<String, dynamic>>> _todos = supabase
-      .from('todos')
-      .stream(primaryKey: ['id'])
-      .order('created_at');
+  late Stream<List<Map<String, dynamic>>> _todos = _subscribe();
+
+  Stream<List<Map<String, dynamic>>> _subscribe() =>
+      supabase.from('todos').stream(primaryKey: ['id']).order('created_at');
 
   @override
   void dispose() {
@@ -27,53 +29,48 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  Future<void> _run(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error(context, "Couldn't save that change. Try again.");
+      }
+    }
+  }
+
   Future<void> _addTodo() async {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
-    try {
-      await supabase.from('todos').insert({'title': title});
-      _controller.clear();
-    } catch (e) {
-      _showError(e);
-    }
+    _controller.clear();
+    await _run(() => supabase.from('todos').insert({'title': title}));
   }
 
-  Future<void> _toggle(Map<String, dynamic> todo) async {
-    try {
-      await supabase
-          .from('todos')
-          .update({'is_done': !(todo['is_done'] as bool)})
-          .eq('id', todo['id']);
-    } catch (e) {
-      _showError(e);
-    }
-  }
+  Future<void> _toggle(Map<String, dynamic> todo) => _run(
+    () => supabase
+        .from('todos')
+        .update({'is_done': !(todo['is_done'] as bool)})
+        .eq('id', todo['id']),
+  );
 
-  Future<void> _delete(Map<String, dynamic> todo) async {
-    try {
-      await supabase.from('todos').delete().eq('id', todo['id']);
-    } catch (e) {
-      _showError(e);
-    }
-  }
-
-  void _showError(Object e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Error: $e')));
-  }
+  Future<void> _delete(Map<String, dynamic> todo) =>
+      _run(() => supabase.from('todos').delete().eq('id', todo['id']));
 
   @override
   Widget build(BuildContext context) {
-    final user = supabase.auth.currentUser;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(user?.email ?? 'Todos'),
+      appBar: AppAppBar(
+        title: 'Your todos',
+        subtitle: supabase.auth.currentUser?.email,
         actions: [
-          IconButton(
+          AppIconButton(
+            icon: Icons.palette_outlined,
+            tooltip: 'Components',
+            onPressed: () => DesignSystemPage.open(context),
+          ),
+          AppIconButton(
+            icon: Icons.logout,
             tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
             onPressed: () => supabase.auth.signOut(),
           ),
         ],
@@ -81,17 +78,30 @@ class _HomePageState extends State<HomePage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
+                  child: AppTextField(
                     controller: _controller,
-                    decoration: const InputDecoration(hintText: 'New todo'),
+                    hint: 'Add a todo',
+                    prefixIcon: Icons.add_task,
+                    textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _addTodo(),
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.add), onPressed: _addTodo),
+                AppSpacing.gapXs,
+                AppIconButton(
+                  icon: Icons.add,
+                  tooltip: 'Add todo',
+                  filled: true,
+                  onPressed: _addTodo,
+                ),
               ],
             ),
           ),
@@ -100,26 +110,45 @@ class _HomePageState extends State<HomePage> {
               stream: _todos,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return AppEmptyState.error(
+                    message: "Couldn't load your todos.",
+                    onAction: () => setState(() => _todos = _subscribe()),
+                  );
                 }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (!snapshot.hasData) return const AppLoader();
                 final todos = snapshot.data!;
                 if (todos.isEmpty) {
-                  return const Center(child: Text('No todos yet'));
+                  return const AppEmptyState(
+                    icon: Icons.checklist_rounded,
+                    title: 'Start your first todo',
+                    message: 'Type above and press enter to add one.',
+                  );
                 }
-                return ListView.builder(
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                  ),
                   itemCount: todos.length,
+                  separatorBuilder: (_, _) => AppSpacing.gapXs,
                   itemBuilder: (context, i) {
                     final todo = todos[i];
-                    return CheckboxListTile(
-                      value: todo['is_done'] as bool,
-                      title: Text(todo['title'] as String),
-                      onChanged: (_) => _toggle(todo),
-                      secondary: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => _delete(todo),
+                    return AppCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      child: AppCheckbox(
+                        value: todo['is_done'] as bool,
+                        label: todo['title'] as String,
+                        strikeThroughWhenChecked: true,
+                        onChanged: (_) => _toggle(todo),
+                        trailing: AppIconButton(
+                          icon: Icons.delete_outline,
+                          tooltip: 'Delete',
+                          onPressed: () => _delete(todo),
+                        ),
                       ),
                     );
                   },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../custom_views/custom_views.dart';
 import '../main.dart';
 
 class LoginPage extends StatefulWidget {
@@ -11,9 +12,13 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _loading = false;
+  bool _signingIn = false;
+  bool _signingUp = false;
+
+  bool get _busy => _signingIn || _signingUp;
 
   @override
   void dispose() {
@@ -23,7 +28,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit({required bool signUp}) async {
-    setState(() => _loading = true);
+    if (_busy || !_formKey.currentState!.validate()) return;
+    setState(() => signUp ? _signingUp = true : _signingIn = true);
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     try {
@@ -32,8 +38,11 @@ class _LoginPageState extends State<LoginPage> {
           email: email,
           password: password,
         );
-        if (res.session == null) {
-          _showMessage('Check your inbox to confirm your email.');
+        if (res.session == null && mounted) {
+          AppSnackbar.success(
+            context,
+            'Check your inbox to confirm your email.',
+          );
         }
       } else {
         await supabase.auth.signInWithPassword(
@@ -42,63 +51,71 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } on AuthException catch (e) {
-      _showMessage(e.message, isError: true);
-    } catch (e) {
-      _showMessage('Unexpected error: $e', isError: true);
+      if (mounted) AppSnackbar.error(context, e.message);
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error(context, "Couldn't reach the server. Try again.");
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _signingIn = _signingUp = false);
     }
-  }
-
-  void _showMessage(String message, {bool isError = false}) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign in')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(24),
-            children: [
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                keyboardType: TextInputType.emailAddress,
-                autofillHints: const [AutofillHints.email],
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Form(
+                key: _formKey,
+                child: AutofillGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Welcome back', style: AppTextStyles.title),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        'Sign in to see your todos.',
+                        style: AppTextStyles.body.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      AppSpacing.gapXl,
+                      AppTextField.email(
+                        controller: _emailController,
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? 'Enter a valid email'
+                            : null,
+                      ),
+                      AppSpacing.gapMd,
+                      AppTextField.password(
+                        controller: _passwordController,
+                        onSubmitted: (_) => _submit(signUp: false),
+                        validator: (v) => (v == null || v.length < 6)
+                            ? 'Use at least 6 characters'
+                            : null,
+                      ),
+                      AppSpacing.gapLg,
+                      AppButton(
+                        label: 'Sign in',
+                        isLoading: _signingIn,
+                        onPressed: () => _submit(signUp: false),
+                      ),
+                      AppSpacing.gapSm,
+                      AppButton.secondary(
+                        label: 'Create account',
+                        isLoading: _signingUp,
+                        onPressed: () => _submit(signUp: true),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                autofillHints: const [AutofillHints.password],
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _loading ? null : () => _submit(signUp: false),
-                child: _loading
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Sign in'),
-              ),
-              TextButton(
-                onPressed: _loading ? null : () => _submit(signUp: true),
-                child: const Text('Create an account'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

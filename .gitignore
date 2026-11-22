@@ -46,3 +46,6 @@ app.*.map.json
 
 # Local Supabase credentials (copy env.example.json)
 env.json
+
+# FVM Version Cache
+.fvm/
