@@ -1,6 +1,6 @@
 /// Design system components. Import this one file to use any of them:
 ///
-///   import 'package:example_app_supabase/custom_views/custom_views.dart';
+///   import 'package:flutter_supabase_ai_agent/custom_views/custom_views.dart';
 library;
 
 export '../theme/app_theme.dart';

@@ -1,16 +1,34 @@
-# example_app_supabase
+# AI Workspace (Flutter + Supabase)
 
-A Supabase Flutter project.
+A learning and portfolio project: a private AI assistant that answers
+questions from your own notes and turns what you discuss into tasks.
 
-## Getting Started
+Built with Flutter (web and Android) and Supabase (Postgres, Auth, Storage,
+Edge Functions).
 
-This project is a starting point for a Flutter application.
+## Status
 
-A few resources to get you started if this is your first Flutter project:
+Work in progress, built in milestones:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+1. Database schema, signup trigger and row-level security
+2. Flutter auth and workspace connection
+3. Private storage and an AI agent Edge Function with tool calling
+4. Chat UI with streaming, CI and an architecture diagram
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Running locally
+
+1. Copy `env.example.json` to `env.json` and fill in your Supabase project
+   URL and publishable key (Project Settings → API).
+2. Run:
+
+   ```bash
+   flutter run --dart-define-from-file=env.json
+   ```
+
+The Flutter version is pinned in `.fvmrc`.
+
+## Project layout
+
+- `lib/custom_views/`: design system components
+- `lib/theme/`: colors, typography and spacing tokens
+- `supabase/sql/`: database scripts, run in order in the Supabase SQL Editor

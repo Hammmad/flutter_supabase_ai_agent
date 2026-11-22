@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:example_app_supabase/main.dart';
+import 'package:flutter_supabase_ai_agent/main.dart';
 
 void main() {
   testWidgets('Shows setup message when Supabase is not configured', (

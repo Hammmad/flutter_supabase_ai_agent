@@ -1,6 +1,6 @@
 {
-    "name": "example_app_supabase",
-    "short_name": "example_app_supabase",
+    "name": "AI Workspace",
+    "short_name": "AI Workspace",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

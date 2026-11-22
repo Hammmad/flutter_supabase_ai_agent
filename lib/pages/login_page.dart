@@ -79,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
                       Text('Welcome back', style: AppTextStyles.title),
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
-                        'Sign in to see your todos.',
+                        'Sign in to your workspace.',
                         style: AppTextStyles.body.copyWith(
                           color: AppColors.textSecondary,
                         ),
